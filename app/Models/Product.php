@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -17,6 +18,17 @@ class Product extends Model
         'supplier_id',
         'stock_quantity',
         'price',
+        'sub_category',
+        'sizes',
+        'bestseller',
+        'date',
+    ];
+
+    // Casts pour les champs JSON et boolean
+    protected $casts = [
+        'sizes' => 'array',  // Convertir la colonne 'sizes' en tableau automatiquement
+        'bestseller' => 'boolean',  // Convertir la colonne 'bestseller' en boolean
+        'date' => 'datetime',  // Si tu veux le traiter comme un objet DateTime
     ];
 
     // Relation avec la catégorie

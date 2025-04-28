@@ -35,7 +35,9 @@ class ProductController extends Controller
      * POST /api/products
      */
     public function store(Request $request)
+    
     {
+    
         try {
             // Data validation
             $validatedData = $request->validate([
@@ -47,17 +49,30 @@ class ProductController extends Controller
                 'supplier_id' => 'required|exists:suppliers,id',
                 'stock_quantity' => 'required|integer|min:0',
                 'price' => 'required|numeric|min:0',
+    
+                // 🔵 Nouveaux champs
+                'sub_category' => 'nullable|string|max:255',
+                'sizes' => 'nullable|array',
+                'sizes.*' => 'string|max:10', // Chaque taille doit être une petite chaîne
+                'bestseller' => 'nullable|boolean',
+                'date' => 'nullable|date',
             ]);
 
+    
             // Image upload handling
             if ($request->hasFile('image')) {
                 $imagePath = $request->file('image')->store('products', 'public');
                 $validatedData['image'] = basename($imagePath);  // Save only the filename
             }
-
+    
+            // Transformer 'sizes' en JSON si fourni
+            if (isset($validatedData['sizes'])) {
+                $validatedData['sizes'] = json_encode($validatedData['sizes']);
+            }
+    
             // Create the product
             $product = Product::create($validatedData);
-
+    
             return response()->json($product, Response::HTTP_CREATED);
         } catch (\Exception $e) {
             return response()->json([
@@ -66,6 +81,7 @@ class ProductController extends Controller
             ], Response::HTTP_BAD_REQUEST);
         }
     }
+    
 
     /**
      * Update product details.
