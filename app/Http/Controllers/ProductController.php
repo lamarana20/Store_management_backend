@@ -9,70 +9,66 @@ use Illuminate\Support\Facades\Storage;
 
 class ProductController extends Controller
 {
-    
-    /**
-     * Display a list of all products.
-     * GET /api/products
-     */
     public function index()
     {
         $products = Product::all()->map(function ($product) {
-            // Make sure the image exists before generating the URL
-            if ($product->image) {
-                $product->image_url = asset('storage/products/' . $product->image);
+            $images = json_decode($product->images, true) ?? [];
+    
+            if (count($images) > 0) {
+                $product->image_urls = array_map(function ($image) {
+                    return asset('storage/products/' . $image);
+                }, $images);
             } else {
-                // If no image is available, set a default image
-                $product->image_url = asset('storage/products/placeholder.jpg'); 
+                $product->image_urls = [asset('storage/products/placeholder.jpg')];
             }
+    
             return $product;
         });
-
+    
         return response()->json($products);
     }
+    
 
-    /**
-     * Create a new product.
-     * POST /api/products
-     */
     public function store(Request $request)
-    
     {
-    
         try {
-            // Data validation
             $validatedData = $request->validate([
                 'sku' => 'required|string|max:100|unique:products,sku',
                 'name' => 'required|string|max:255',
-                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+                'images' => 'nullable|array',
+                'images.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
                 'description' => 'nullable|string',
                 'category_id' => 'required|exists:categories,id',
                 'supplier_id' => 'required|exists:suppliers,id',
                 'stock_quantity' => 'required|integer|min:0',
                 'price' => 'required|numeric|min:0',
-    
-                // 🔵 Nouveaux champs
                 'sub_category' => 'nullable|string|max:255',
                 'sizes' => 'nullable|array',
-                'sizes.*' => 'string|max:10', // Chaque taille doit être une petite chaîne
+                'sizes.*' => 'string|max:10',
                 'bestseller' => 'nullable|boolean',
                 'date' => 'nullable|date',
             ]);
 
-    
-            // Image upload handling
-            if ($request->hasFile('image')) {
-                $imagePath = $request->file('image')->store('products', 'public');
-                $validatedData['image'] = basename($imagePath);  // Save only the filename
+            if ($request->hasFile('images')) {
+                $imagePaths = [];
+                foreach ($request->file('images') as $image) {
+                    $path = $image->store('products', 'public');
+                    $imagePaths[] = basename($path);
+                }
+                $validatedData['images'] = json_encode($imagePaths);
             }
-    
-            // Transformer 'sizes' en JSON si fourni
+
             if (isset($validatedData['sizes'])) {
                 $validatedData['sizes'] = json_encode($validatedData['sizes']);
             }
-    
-            // Create the product
+
             $product = Product::create($validatedData);
-    
+
+            // Ajoute les URLs des images
+            $product->image_urls = collect(json_decode($product->images))->map(function ($filename) {
+                return asset('storage/products/' . $filename);
+            });
+
             return response()->json($product, Response::HTTP_CREATED);
         } catch (\Exception $e) {
             return response()->json([
@@ -81,42 +77,64 @@ class ProductController extends Controller
             ], Response::HTTP_BAD_REQUEST);
         }
     }
-    
 
-    /**
-     * Update product details.
-     * PUT /api/products/{id}
-     */
     public function update(Request $request, $id)
     {
         try {
             $product = Product::findOrFail($id);
 
-            // Data validation
             $validatedData = $request->validate([
                 'sku' => 'sometimes|required|string|max:100|unique:products,sku,' . $id,
                 'name' => 'sometimes|required|string|max:255',
-                'image' => 'nullable|mimes:jpeg,png,jpg,gif|max:2048888',  // Change 'required' to 'nullable'
+                'images' => 'nullable|array',
+                'images.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
+                'replace_images' => 'nullable|boolean',
                 'description' => 'nullable|string',
                 'category_id' => 'sometimes|required|exists:categories,id',
                 'supplier_id' => 'sometimes|required|exists:suppliers,id',
                 'stock_quantity' => 'sometimes|required|integer|min:0',
                 'price' => 'sometimes|required|numeric|min:0',
+                'sub_category' => 'nullable|string|max:255',
+                'sizes' => 'nullable|array',
+                'sizes.*' => 'string|max:10',
+                'bestseller' => 'nullable|boolean',
+                'date' => 'nullable|date',
             ]);
 
-            // Image upload handling
-            if ($request->hasFile('image')) {
-                // Delete old image if it exists
-                if ($product->image) {
-                    Storage::disk('public')->delete('products/' . $product->image);
-                }
-
-                $imagePath = $request->file('image')->store('products', 'public');
-                $validatedData['image'] = basename($imagePath); // Save only the filename
+            if (isset($validatedData['sizes'])) {
+                $validatedData['sizes'] = json_encode($validatedData['sizes']);
             }
 
-            // Update the product
+            if ($request->boolean('replace_images')) {
+                if ($product->images) {
+                    foreach (json_decode($product->images, true) as $img) {
+                        Storage::disk('public')->delete('products/' . $img);
+                    }
+                }
+                $product->images = null;
+            }
+
+            if ($request->hasFile('images')) {
+                $newImages = [];
+                foreach ($request->file('images') as $image) {
+                    $path = $image->store('products', 'public');
+                    $newImages[] = basename($path);
+                }
+
+                if (!$request->boolean('replace_images') && $product->images) {
+                    $existing = json_decode($product->images, true);
+                    $newImages = array_merge($existing, $newImages);
+                }
+
+                $validatedData['images'] = json_encode($newImages);
+            }
+
             $product->update($validatedData);
+
+            // Ajoute les URLs des images
+            $product->image_urls = collect(json_decode($product->images))->map(function ($filename) {
+                return asset('storage/products/' . $filename);
+            });
 
             return response()->json($product, Response::HTTP_OK);
         } catch (\Exception $e) {
@@ -127,17 +145,14 @@ class ProductController extends Controller
         }
     }
 
-    /**
-     * Delete a specific product by ID.
-     * DELETE /api/products/{id}
-     */
     public function destroy($id)
     {
         $product = Product::findOrFail($id);
 
-        // Delete associated image if it exists
-        if ($product->image && Storage::disk('public')->exists('products/' . $product->image)) {
-            Storage::disk('public')->delete('products/' . $product->image);
+        if ($product->images) {
+            foreach (json_decode($product->images, true) as $img) {
+                Storage::disk('public')->delete('products/' . $img);
+            }
         }
 
         $product->delete();
@@ -147,13 +162,9 @@ class ProductController extends Controller
         ], Response::HTTP_OK);
     }
 
-    /**
-     * Display list of products with low stock.
-     * GET /api/products/low-stock
-     */
     public function lowStock()
     {
-        $threshold = env('LOW_STOCK_THRESHOLD', 500); // Low stock threshold configurable via .env
+        $threshold = env('LOW_STOCK_THRESHOLD', 500);
         $products = Product::where('stock_quantity', '<', $threshold)->get();
 
         return response()->json([
