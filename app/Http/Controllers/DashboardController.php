@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
-    // GET /api/dashboard/user — Stats pour le client
+    // GET /api/dashboard/user — Stats for the customer
     public function userStats(Request $request)
     {
         $user = $request->user();
@@ -28,7 +28,7 @@ class DashboardController extends Controller
         ]);
     }
 
-    // GET /api/dashboard/admin — Stats pour l'admin
+    // GET /api/dashboard/admin — Stats for the admin
     public function adminStats(Request $request)
     {
         return response()->json([

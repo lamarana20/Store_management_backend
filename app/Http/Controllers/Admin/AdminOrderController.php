@@ -15,7 +15,7 @@ class AdminOrderController extends Controller
         $query = Order::with('user:id,name,email')
             ->orderBy('created_at', 'desc');
 
-        // Filtres
+        // Filters
         if ($request->has('status') && $request->status) {
             $query->where('order_status', $request->status);
         }
@@ -26,7 +26,7 @@ class AdminOrderController extends Controller
 
         $orders = $query->paginate(20);
 
-        // Ajouter les détails des items
+        // Attach item details
         $orders->getCollection()->transform(function ($order) {
             $order->items_details = $this->getItemsDetails($order->items);
             return $order;
@@ -56,7 +56,7 @@ class AdminOrderController extends Controller
 
         $order->update($validated);
 
-        // Recharger avec les relations
+        // Reload with related models
         $order->load('user:id,name,email');
         $order->items_details = $this->getItemsDetails($order->items);
 
@@ -77,7 +77,7 @@ class AdminOrderController extends Controller
         ]);
     }
 
-    // Helper — Convertir items en détails avec produits
+    // Helper — Convert raw items into product details
     private function getItemsDetails($items)
     {
         $itemsArray = is_string($items) ? json_decode($items, true) : $items;

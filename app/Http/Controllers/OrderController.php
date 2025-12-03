@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 
 class OrderController extends Controller
 {
-    // GET /api/orders — Liste des commandes du user connecté
+    // GET /api/orders — List orders for the authenticated user
     public function index(Request $request)
     {
         $orders = Order::where('user_id', $request->user()->id)
@@ -22,7 +22,7 @@ class OrderController extends Controller
         return response()->json($orders);
     }
 
-    // GET /api/orders/{id} — Détail d'une commande
+    // GET /api/orders/{id} — Show a specific order
     public function show(Request $request, $id)
     {
         $order = Order::where('user_id', $request->user()->id)
@@ -33,7 +33,7 @@ class OrderController extends Controller
         return response()->json($order);
     }
 
-    // POST /api/orders — Créer une commande
+    // POST /api/orders — Create a new order
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -71,7 +71,7 @@ class OrderController extends Controller
             'delivery_country' => $validated['delivery_country'] ?? null,
         ]);
 
-        // Ajouter les détails pour la réponse
+        // Attach item details to the response
         $order->items_details = $this->getItemsDetails($order->items);
 
         return response()->json([
@@ -80,10 +80,10 @@ class OrderController extends Controller
         ], 201);
     }
 
-    // Helper — Convertir items en détails avec infos produits
+    // Helper — Convert raw items into detailed product data
     private function getItemsDetails($items)
     {
-        // Convertir en array si c'est un string JSON
+        // Convert to an array if we received a JSON string
         $itemsArray = is_string($items) ? json_decode($items, true) : $items;
         $itemsDetails = [];
 

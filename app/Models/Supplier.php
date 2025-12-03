@@ -13,7 +13,7 @@ class Supplier extends Model
         'contact_information',
     ];
 
-    // Relation avec les produits
+    // Relationship with products
     public function products()
     {
         return $this->hasMany(Product::class);

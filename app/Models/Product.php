@@ -24,20 +24,20 @@ class Product extends Model
         'date',
     ];
 
-    // Casts pour les champs JSON et boolean
+    // Casts for JSON and boolean columns
     protected $casts = [
-        'sizes' => 'array',  // Convertir la colonne 'sizes' en tableau automatiquement
-        'bestseller' => 'boolean',  // Convertir la colonne 'bestseller' en boolean
-        'date' => 'datetime',  // Si tu veux le traiter comme un objet DateTime
+        'sizes' => 'array',  // Automatically convert the 'sizes' column to an array
+        'bestseller' => 'boolean',  // Automatically convert the 'bestseller' column to boolean
+        'date' => 'datetime',  // Treat this as a DateTime instance
     ];
 
-    // Relation avec la catégorie
+    // Relationship with the category
     public function category()
     {
         return $this->belongsTo(Category::class);
     }
 
-    // Relation avec le fournisseur
+    // Relationship with the supplier
     public function supplier()
     {
         return $this->belongsTo(Supplier::class);
