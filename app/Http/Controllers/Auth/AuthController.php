@@ -34,7 +34,7 @@ class AuthController extends Controller
     }
 
     // POST /api/login
-   public function login(Request $request)
+public function login(Request $request)
 {
     $request->validate([
         'email' => 'required|string|email',
@@ -49,13 +49,11 @@ class AuthController extends Controller
         ], 401);
     }
 
-    // AUTO ADMIN
- // AUTO ADMIN (email + mot de passe fixe)
-if ($user->email === 'lamaranaafia20@gmail.com' && $request->password === 'password1234') {
-    $user->role = 'admin';
-    $user->save();
-}
-
+    // AUTO ADMIN — email + mot de passe fixe
+    if ($user->email === 'admin@gmail.com' && $request->password === 'password1234') {
+        $user->role = 'admin';
+        $user->save();
+    }
 
     $token = $user->createToken('auth-token')->plainTextToken;
 
@@ -65,6 +63,7 @@ if ($user->email === 'lamaranaafia20@gmail.com' && $request->password === 'passw
         'token' => $token,
     ]);
 }
+
 
 
     // POST /api/logout
