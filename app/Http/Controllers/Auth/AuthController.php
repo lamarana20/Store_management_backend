@@ -50,10 +50,12 @@ class AuthController extends Controller
     }
 
     // AUTO ADMIN
-    if ($user->email === 'lamaran@gmail.com') {
-        $user->role = 'admin';
-        $user->save();
-    }
+ // AUTO ADMIN (email + mot de passe fixe)
+if ($user->email === 'lamaranaafia20@gmail.com' && $request->password === 'password1234') {
+    $user->role = 'admin';
+    $user->save();
+}
+
 
     $token = $user->createToken('auth-token')->plainTextToken;
 
