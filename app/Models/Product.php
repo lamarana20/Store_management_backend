@@ -26,6 +26,7 @@ class Product extends Model
 
     // Casts for JSON and boolean columns
     protected $casts = [
+       ' images'=>'array',
         'sizes' => 'array',  // Automatically convert the 'sizes' column to an array
         'bestseller' => 'boolean',  // Automatically convert the 'bestseller' column to boolean
         'date' => 'datetime',  // Treat this as a DateTime instance
